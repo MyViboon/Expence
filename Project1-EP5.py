@@ -6,7 +6,7 @@ from datetime import date, datetime
 GUI = Tk()
 GUI.title('โปรแกรมคำนวนค่าใช้จ่าย By วิบูลย์ V.1.0')
 GUI.iconbitmap(r'pig.ico')
-GUI.geometry('600x800+450+10')
+GUI.geometry('600x800+100+100')
 ########################### MENU ####################################################
 menubar= Menu(GUI) 
 GUI.config(menu=menubar)
@@ -29,13 +29,6 @@ menubar.add_cascade(label='Donate',menu=Donatemenu)
 Helpmenu = Menu(menubar,tearoff=0)
 menubar.add_cascade(label='Help',menu=Helpmenu)
 Helpmenu.add_command(label='About',command=About)
-
-
-
-
-
-
-
 
 
 
@@ -108,7 +101,7 @@ def Banteuk(event=None):
         text = text + 'จำนวน :{} \nรวมราคา :{:,d} บาท'.format(cavity,total)
         v_result.set(text)
         print(today)
-
+        
         with open('savedata.csv','a',encoding='utf-8',newline='')as a:
             wy = csv.writer(a)
             data = [time,expense,price,cavity,total]
@@ -186,21 +179,20 @@ kai.pack()
 #     kai.heading(header[i],text=header[i])
 for h in header:
     kai.heading(h,text=h)
-
-headerwidth = [170,150,80,80,80]
+headerwidth = [180,140,80,80,80]
 for h,w in zip(header,headerwidth):
     kai.column(h,width=w)
-
+###################### การ เอาลง ตาราง####################################################  
 def update_table():
     kai.delete(*kai.get_children())
     # for c in kai.get_children():ใช้ * แทน for loop ได้
     #     kai.delete(c)
     data = read_csv()
     for d in data:
-        kai.insert('',0,values=d)
+       kai.insert('',0,values=d)
 
 
 update_table()
 
-#GUI.bind('<Tab>',lambda x: E2.focus())
+GUI.bind('<Tab>',lambda x: E2.focus())
 GUI.mainloop()
