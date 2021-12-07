@@ -6,7 +6,24 @@ from datetime import date, datetime
 GUI = Tk()
 GUI.title('โปรแกรมคำนวนค่าใช้จ่าย By วิบูลย์ V.1.0')
 GUI.iconbitmap(r'pig.ico')
-GUI.geometry('720x700+500+50')
+#GUI.geometry('720x700+500+50')
+
+w = 720
+h = 700
+
+ws = GUI.winfo_screenwidth() # ขนาดหน้าจอกว้าง
+hs = GUI.winfo_screenheight() # ขนาดหน้าจอสูง
+
+x = (ws/2) - (w/2)
+y = (hs/2) - (h/2)
+
+GUI.geometry(f'{w}x{h}+{x:.0f}+{y:.0f}')
+
+
+
+
+
+
 ########################### MENU ####################################################
 menubar= Menu(GUI) 
 GUI.config(menu=menubar)
@@ -48,7 +65,7 @@ i_report = PhotoImage(file='list.png')
 
 
 Tab.add(T1,text=f'{"เพิ่มค่าใช้จ่าย": ^20s}',image=i_add,compound='top')
-Tab.add(T2,text=f'{"สดงรายการ": ^20s}',image=i_report,compound='top')
+Tab.add(T2,text=f'{"แสดงรายการ": ^20s}',image=i_report,compound='top')
 
 #--------------------------------------------------------------------------
 F1 =  Frame(T1,background='pink')
@@ -164,18 +181,19 @@ result.pack(pady=10)
 #-------------------------------------------------------================================
 #===========================TAB 2==================================================###
 
+######## ฟังชั่น อ่าน CSV##########
 def read_csv():
     with open('savedata.csv',newline='',encoding='utf-8') as f:
         fr = csv.reader(f)
         data = list(fr)
     return data
-
+#######################################################################################
 # table
 
 L = ttk.Label(T2,text='ตารางแสดงค่าใช้จ่าย',font=FONT1).pack(pady=20)
 
 header = ['รหัส','วันที่-เวลา','รายการ','ค่าใช้จ่าย','จำนวน','รวม']
-kai = ttk.Treeview(T2,columns=header,show='headings',height=10) 
+kai = ttk.Treeview(T2,columns=header,show='headings',height=20) 
 kai.pack()
 # for i in range(len(header)):
 #     kai.heading(header[i],text=header[i])
@@ -220,7 +238,7 @@ def DeleteRecord(event=None):
         print('cancle')
 
 BDelete = ttk.Button(T2,text='delete',command=DeleteRecord)
-BDelete.place(x=50,y=350)
+BDelete.place(x=35,y=550)
 
 kai.bind('<Delete>',DeleteRecord)
 
@@ -247,6 +265,90 @@ def update_table():
     except Exception as e:
         print('No File')
         print('ERROR',e)
+
+#################### คลิกขวา เมนู #############
+def Editrecord():
+    POPUP = Toplevel()# คล้ายๆกับ Tk()
+    #POPUP.geometry('500x400')
+    
+    w = 500
+    h = 400
+
+    ws = GUI.winfo_screenwidth() # ขนาดหน้าจอกว้าง
+    hs = GUI.winfo_screenheight() # ขนาดหน้าจอสูง
+
+    x = (ws/2) - (w/2)
+    y = (hs/2) - (h/2)
+
+    POPUP.geometry(f'{w}x{h}+{x:.0f}+{y:.0f}')
+
+    POPUP.title('แก้ใขรายการ')
+    L = ttk.Label(POPUP,text='รายการค่าใช้จ่าย',font=FONT1,background='pink').pack()
+    v_expense = StringVar()
+    E1 = ttk.Entry(POPUP,textvariable=v_expense,font=FONT1)
+    E1.pack(pady=5)
+    #------text2---------
+    L = ttk.Label(POPUP,text='ราคา',font=FONT1,background='pink').pack()
+    v_price = StringVar()
+    E2 = ttk.Entry(POPUP,textvariable=v_price,font=FONT1)
+    E2.pack(pady=5)
+    #------text3---------
+    L = ttk.Label(POPUP,text='จำนวน',font=FONT1,background='pink').pack()
+    v_cavity = StringVar()
+    E3 = ttk.Entry(POPUP,textvariable=v_cavity,font=FONT1)
+    E3.pack(pady=5)
+    #==============================================================================
+
+    def Edit():
+        #check = messagebox.askyesno('ยืนยันการแก้ไข','คุณต้องการแก้ไขข้อมูลใช่หรือไม่?')
+        # print(transectionid)
+        # print(alltransaction)
+        olddata = alltransaction[str(transectionid)]
+        print(olddata)
+        v1 = v_expense.get()
+        v2 = v_price.get()
+        v3 = v_cavity.get()
+        totol = int(v2) * int(v3)
+        newdata = [olddata[0],olddata[1],v1,v2,v3,totol] 
+        alltransaction[str(transectionid)] = newdata 
+        UpdateCSV()
+        update_table()
+
+        POPUP.destroy()# สั่งปิด POPUP
+
+    #----------------โซนปุ่ม- buttom------------------
+    poom = PhotoImage(file='save.png')
+    B1 = Button(POPUP,text='กดเพื่อ Save เด้อ!!',bg='#abed9a',image = poom,command=Edit,compound='left')
+    B1.pack(ipadx=30,ipady=10,pady=20)
+
+############ get data in select record ######
+    select = kai.selection()
+    #print(select)
+    data = kai.item(select)
+    data = data['values']
+    print(data)
+    transectionid = data[0]
+
+    ## สั่ง Set ค่าเก่าไว้ตรงช่องกรอก
+    v_expense.set(data[2])
+    v_price.set(data[3])
+    v_cavity.set(data[5])
+
+    POPUP.mainloop()
+
+
+
+rigthclick = Menu(GUI,tearoff=0)
+rigthclick.add_command(label='Edit',command=Editrecord)
+rigthclick.add_command(label='Delete',command=DeleteRecord)
+
+def menupopup(event):
+    #print(event.x_root,event.y_root)
+    rigthclick.post(event.x_root,event.y_root)
+
+kai.bind('<Button-3>',menupopup)
+
+
 
 update_table()
 
