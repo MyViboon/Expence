@@ -2,7 +2,65 @@ from tkinter import *
 from tkinter import ttk,messagebox
 import csv
 from datetime import date, datetime
+################# DATABASE ################################
+import sqlite3
 
+# สร้าง database
+conn = sqlite3.connect('expense.sqlite3')
+# สร้างตัวดำเนินการ (อยากได้อะไรใช้ตัวนี้ได้เลย)
+c = conn.cursor()
+
+# สร้าง table ด้วยภาษาSQL
+
+'''
+'รหัส(transectionid)TEXT',
+'วันที่-เวลา(datetime)TEXT',
+'รายการ(title)TEXT',
+'ค่าใช้จ่าย(expense)RAEL(Float)',
+'จำนวน(quantity)INTRGER',
+'รวม(total)REAL'
+'''
+
+c.execute("""CREATE TABLE IF NOT EXISTS expenselist(
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                transectionid TEXT,
+                datetime TEXT,
+                title TEXT,
+                expense INTEGER,
+                quantity INTEGER,
+                total REAL
+            )""")
+
+def insert_expense(transectionid,datetime,title,expense,quantity,total):
+    ID = None
+    with conn:
+        c.execute("""INSERT INTO expenselist VALUES (?,?,?,?,?,?,?)""",
+            (ID,transectionid,datetime,title,expense,quantity,total))
+    conn.commit()# การบันทึกข้อมูลลงฐานข้อมูล ถ้าไม่รันตัวนี้จะไม่บันทึก
+    print('INSERT suscessss!!!')
+
+def show_expense():
+    with conn:
+        c.execute("SELECT * FROM expenselist")
+        expense =  c.fetchall()# คำสั่งให้ดึงข้อมูลเข้ามา
+        print(expense)
+
+    return expense
+def update_expense(transectionid,title,expense,quantity,total):
+    with conn:
+        c.execute("""UPDATE expenselist SET title=?, expense=?, quantity=?, total=? WHERE transectionid=?""",
+        ([title,expense,quantity,total,transectionid]))
+        
+    conn.commit()
+    print('Data updated')
+
+def delete_expense(transectionid):
+    with conn:
+        c.execute("DELETE FROM expenselist WHERE transectionid=?",([transectionid]))
+    conn.commit()
+    print('Data delete')
+
+#################################################
 GUI = Tk()
 GUI.title('โปรแกรมคำนวนค่าใช้จ่าย By วิบูลย์ V.1.0')
 GUI.iconbitmap(r'pig.ico')
@@ -120,14 +178,16 @@ def Banteuk(event=None):
         text = text + 'จำนวน :{} \nรวมราคา :{:,d} บาท'.format(cavity,total)
         v_result.set(text)
         print(today)
-        
+
+        insert_expense(transectionid,time,expense,int(price),cavity,int(total)) # ใส่ใน DB
+
         with open('savedata.csv','a',encoding='utf-8',newline='')as a:
             wy = csv.writer(a)
             data = [transectionid,time,expense,price,cavity,total]
             wy.writerow(data)
     except:
-        print('ERROR')
-        messagebox.showwarning('Error','กรุณากรอกข้อมูลทุกช่อง')
+        # print('ERROR')
+        # messagebox.showwarning('Error','กรุณากรอกข้อมูลทุกช่อง')
         v_expense.set('')
         v_price.set('')
         v_cavity.set('')
@@ -218,25 +278,32 @@ def UpdateCSV():
         print('กระดานมีการ เปลี่ยนแปลง')
         update_table()
 
+def UpdateSQL():
+    data = list(alltransaction.values())
+    #print('Update SQL',data[0])
+    for d in data:
+        #transectionid,title,expense,quantity,total
+        #d[0]=02112091625315192', d[1]='พฤหัส-09/12/2021- 16:25:31', d[2]= 'ดาว', d[3]= 25.0, d[4]= 4, d[5]=100.0
+        update_expense(d[0],d[2],d[3],d[4],d[5])
+
+
+
 ################################  ฟังชั่น ลบ ##############################################
 def DeleteRecord(event=None):
     check = messagebox.askyesno('Conferm?','คุณต้องการลบข้อมูลใช่หรือไม่?')
     if check == True:
-        #print('delete')
         select = kai.selection()
-        #print(select)
         data = kai.item(select)
         data = data['values']
         transectionid = data[0]
-        #print(transectionid)
-        #print(type(transectionid))
         del alltransaction[str(transectionid)]
-        #print(alltransaction)
-        UpdateCSV()
+        
+        #UpdateCSV()
+        delete_expense(str(transectionid)) # delete in DB
         update_table()
     else:
-        print('cancle')
-
+        #print('cancle')
+        pass
 BDelete = ttk.Button(T2,text='delete',command=DeleteRecord)
 BDelete.place(x=35,y=550)
 
@@ -253,13 +320,15 @@ def update_table():
     # for c in kai.get_children():ใช้ * แทน for loop ได้
     #     kai.delete(c)
     try:
-        data = read_csv()
+        data = show_expense()#read_csv()
+        #print('data')
         # for i,d in enumerate(data):
         #     print(i+1,d)
         for d in data:
             ## สร้าง transection data
-            alltransaction[d[0]] = d # d[0] = transaction
-            kai.insert('',0,values=d)
+            alltransaction[d[1]] = d[1:] # d[1] = transaction
+            kai.insert('',0,values=d[1:])
+            print('TS',alltransaction)
         print(alltransaction)
 
     except Exception as e:
@@ -311,9 +380,9 @@ def Editrecord():
         totol = int(v2) * int(v3)
         newdata = [olddata[0],olddata[1],v1,v2,v3,totol] 
         alltransaction[str(transectionid)] = newdata 
-        UpdateCSV()
+        #UpdateCSV()
+        UpdateSQL()
         update_table()
-
         POPUP.destroy()# สั่งปิด POPUP
 
     #----------------โซนปุ่ม- buttom------------------
@@ -332,7 +401,7 @@ def Editrecord():
     ## สั่ง Set ค่าเก่าไว้ตรงช่องกรอก
     v_expense.set(data[2])
     v_price.set(data[3])
-    v_cavity.set(data[5])
+    v_cavity.set(data[4])
 
     POPUP.mainloop()
 
